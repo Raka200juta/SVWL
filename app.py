@@ -28,6 +28,7 @@ def init_firebase():
         firebase_admin.initialize_app(cred)
     return firestore.client()
 
+db = init_firebase()
 # ─────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────
