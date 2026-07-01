@@ -17,13 +17,8 @@ from firebase_admin import credentials, firestore
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
-        if "firebase_secrets" not in st.secrets:
-            raise RuntimeError(
-                "Secret 'firebase_secrets' tidak ditemukan. "
-                "Cek App settings > Secrets di Streamlit Cloud, harus ada blok [firebase_secrets]."
-            )
+        # Membaca konfigurasi dari Streamlit Secrets
         firebase_creds = dict(st.secrets["firebase_secrets"])
-        # Memperbaiki pembacaan karakter newline pada production secrets
         firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
         cred = credentials.Certificate(firebase_creds)
         firebase_admin.initialize_app(cred)
