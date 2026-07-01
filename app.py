@@ -15,6 +15,9 @@ from firebase_admin import credentials, firestore
 # FIREBASE INIT
 # ─────────────────────────────────────────────
 
+# ─────────────────────────────────────────────
+# FIREBASE INIT
+# ─────────────────────────────────────────────
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
@@ -26,17 +29,6 @@ def init_firebase():
     return firestore.client()
 
 db = init_firebase()
-
-try:
-    db = init_firebase()
-    FIREBASE_OK = True
-except Exception as e:
-    FIREBASE_OK = False
-    st.error(
-        "🔥 Gagal konek ke Firebase. Registrasi/login tidak akan berfungsi sampai ini diperbaiki.\n\n"
-        f"**Detail error:** `{e}`"
-    )
-    st.stop()
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
