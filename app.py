@@ -10,25 +10,23 @@ import urllib.parse
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
+import os
+
+os.environ["GOOGLE_CLOUD_FIRESTORE_FORCE_REST"] = "true"
 
 # ─────────────────────────────────────────────
 # FIREBASE INIT
 # ─────────────────────────────────────────────
 
-# ─────────────────────────────────────────────
-# FIREBASE INIT
-# ─────────────────────────────────────────────
+
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
-        # Membaca kredensial dari Secrets Manager Streamlit Cloud
         firebase_creds = dict(st.secrets["firebase_secrets"])
         firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
         cred = credentials.Certificate(firebase_creds)
         firebase_admin.initialize_app(cred)
     return firestore.client()
-
-db = init_firebase()
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
