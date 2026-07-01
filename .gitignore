@@ -1,3 +1,5 @@
 venv/
 .venv/
 serviceAccountKey.json
+generate_secrets.py
+serviceAccount.json
