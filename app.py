@@ -1,3 +1,6 @@
+import os
+os.environ["GOOGLE_CLOUD_FIRESTORE_FORCE_REST"] = "true"
+
 import streamlit as st
 import html
 import hashlib
@@ -10,15 +13,10 @@ import urllib.parse
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
-import os
-
-os.environ["GOOGLE_CLOUD_FIRESTORE_FORCE_REST"] = "true"
 
 # ─────────────────────────────────────────────
 # FIREBASE INIT
 # ─────────────────────────────────────────────
-
-
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
