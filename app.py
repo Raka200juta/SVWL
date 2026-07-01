@@ -17,6 +17,11 @@ from firebase_admin import credentials, firestore
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
+        if "firebase_secrets" not in st.secrets:
+            raise RuntimeError(
+                "Secret 'firebase_secrets' tidak ditemukan. "
+                "Cek App settings > Secrets di Streamlit Cloud, harus ada blok [firebase_secrets]."
+            )
         firebase_creds = dict(st.secrets["firebase_secrets"])
         # Memperbaiki pembacaan karakter newline pada production secrets
         firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
@@ -24,7 +29,16 @@ def init_firebase():
         firebase_admin.initialize_app(cred)
     return firestore.client()
 
-db = init_firebase()
+try:
+    db = init_firebase()
+    FIREBASE_OK = True
+except Exception as e:
+    FIREBASE_OK = False
+    st.error(
+        "🔥 Gagal konek ke Firebase. Registrasi/login tidak akan berfungsi sampai ini diperbaiki.\n\n"
+        f"**Detail error:** `{e}`"
+    )
+    st.stop()
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
@@ -440,19 +454,22 @@ if st.session_state.current_user == "guest":
             if not login_user.strip() or not login_pass.strip():
                 st.error("Username dan password tidak boleh kosong.")
             else:
-                user_ref = db.collection("users").document(login_user)
-                user_doc = user_ref.get()
+                try:
+                    user_ref = db.collection("users").document(login_user)
+                    user_doc = user_ref.get()
 
-                if user_doc.exists and user_doc.to_dict().get("password") == hash_password(login_pass):
-                    st.session_state.current_user = login_user
-                    st.session_state.current_role = user_doc.to_dict().get("role", "user")
-                    if "score_loaded" in st.session_state:
-                        del st.session_state["score_loaded"]
-                    st.success(f"Login sukses! Selamat datang, {login_user}.")
-                    time.sleep(0.8)
-                    st.rerun()
-                else:
-                    st.error("Username atau password salah.")
+                    if user_doc.exists and user_doc.to_dict().get("password") == hash_password(login_pass):
+                        st.session_state.current_user = login_user
+                        st.session_state.current_role = user_doc.to_dict().get("role", "user")
+                        if "score_loaded" in st.session_state:
+                            del st.session_state["score_loaded"]
+                        st.success(f"Login sukses! Selamat datang, {login_user}.")
+                        time.sleep(0.8)
+                        st.rerun()
+                    else:
+                        st.error("Username atau password salah.")
+                except Exception as e:
+                    st.error(f"Gagal menghubungi database saat login: `{e}`")
 
     with tab_register:
         with st.form("register_form", clear_on_submit=False):
@@ -466,17 +483,20 @@ if st.session_state.current_user == "guest":
             elif len(reg_pass) < 6:
                 st.error("Password minimal 6 karakter.")
             else:
-                user_ref = db.collection("users").document(reg_user)
-                if user_ref.get().exists:
-                    st.error("Username sudah digunakan orang lain.")
-                else:
-                    user_ref.set({
-                        "username": reg_user,
-                        "password": hash_password(reg_pass),
-                        "role": "user",
-                        "created_at": firestore.SERVER_TIMESTAMP,
-                    })
-                    st.success("Registrasi berhasil! Silakan pindah ke tab LOGIN.")
+                try:
+                    user_ref = db.collection("users").document(reg_user)
+                    if user_ref.get().exists:
+                        st.error("Username sudah digunakan orang lain.")
+                    else:
+                        user_ref.set({
+                            "username": reg_user,
+                            "password": hash_password(reg_pass),
+                            "role": "user",
+                            "created_at": firestore.SERVER_TIMESTAMP,
+                        })
+                        st.success("Registrasi berhasil! Silakan pindah ke tab LOGIN.")
+                except Exception as e:
+                    st.error(f"Gagal menyimpan akun baru ke database: `{e}`")
 
     st.stop()
 
