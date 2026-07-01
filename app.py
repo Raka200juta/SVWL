@@ -17,8 +17,9 @@ from firebase_admin import credentials, firestore
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
-        # Mengonversi format Secrets menjadi dictionary Python
         firebase_creds = dict(st.secrets["firebase_secrets"])
+        # Memperbaiki pembacaan karakter newline pada production secrets
+        firebase_creds["private_key"] = firebase_creds["private_key"].replace("\\n", "\n")
         cred = credentials.Certificate(firebase_creds)
         firebase_admin.initialize_app(cred)
     return firestore.client()
@@ -430,10 +431,12 @@ if st.session_state.current_user == "guest":
     tab_login, tab_register = st.tabs(["🔑 LOGIN", "📝 REGISTER"])
 
     with tab_login:
-        login_user = st.text_input("Username:", key="login_username")
-        login_pass = st.text_input("Password:", type="password", key="login_password")
+        with st.form("login_form", clear_on_submit=False):
+            login_user = st.text_input("Username:", key="login_username")
+            login_pass = st.text_input("Password:", type="password", key="login_password")
+            submit_login = st.form_submit_button("Masuk Aplikasi")
 
-        if st.button("Masuk Aplikasi", key="btn_login"):
+        if submit_login:
             if not login_user.strip() or not login_pass.strip():
                 st.error("Username dan password tidak boleh kosong.")
             else:
@@ -443,7 +446,6 @@ if st.session_state.current_user == "guest":
                 if user_doc.exists and user_doc.to_dict().get("password") == hash_password(login_pass):
                     st.session_state.current_user = login_user
                     st.session_state.current_role = user_doc.to_dict().get("role", "user")
-                    # Reset score_loaded agar re-sync dari Firestore
                     if "score_loaded" in st.session_state:
                         del st.session_state["score_loaded"]
                     st.success(f"Login sukses! Selamat datang, {login_user}.")
@@ -453,10 +455,12 @@ if st.session_state.current_user == "guest":
                     st.error("Username atau password salah.")
 
     with tab_register:
-        reg_user = st.text_input("Buat Username:", key="reg_username")
-        reg_pass = st.text_input("Buat Password:", type="password", key="reg_password")
+        with st.form("register_form", clear_on_submit=False):
+            reg_user = st.text_input("Buat Username:", key="reg_username")
+            reg_pass = st.text_input("Buat Password:", type="password", key="reg_password")
+            submit_register = st.form_submit_button("Daftar Akun Baru")
 
-        if st.button("Daftar Akun Baru", key="btn_register"):
+        if submit_register:
             if not reg_user.strip() or not reg_pass.strip():
                 st.error("Input tidak boleh kosong.")
             elif len(reg_pass) < 6:
